@@ -3,6 +3,8 @@ from flask_cors import CORS
 import os
 import cv2
 import urllib.parse
+import uuid
+
 
 app = Flask(__name__)
 CORS(app, resources={r'/*': {'origins': '*'}}, supports_credentials=True)
@@ -10,6 +12,7 @@ CORS(app, resources={r'/*': {'origins': '*'}}, supports_credentials=True)
 # 設定影片存放資料夾
 VIDEO_FOLDER = '/Users/ponfu/Documents/.macos'
 THUMBNAIL_FOLDER = '/Users/ponfu/Documents/.macos/thumbnail_folder'
+VIDEO_FOLDER = '/Users/ponfu/Documents/video_test'
 
 # 讀取資料夾中的影片，生成縮圖
 def generate_thumbnail(video_path, thumbnail_path):
@@ -72,12 +75,35 @@ def get_videos_from_folder(folder):
 
             # 使用 urllib.parse.quote 對檔名進行編碼
             encoded_filename = urllib.parse.quote(filename)
+            
             videos.append({
+                'id': encoded_filename,
                 'title': filename,
                 'thumbnail': f'http://127.0.0.1:5001/api/thumbnail/{encoded_filename}',
                 'url': f'http://127.0.0.1:5001/api/video/{encoded_filename}'
             })
     return videos
+
+
+@app.route('/api/video-info/<path:video_id>')
+def get_video_info(video_id):
+    for subfolder in os.listdir(VIDEO_FOLDER):
+        if subfolder == '.DS_Store':
+            continue
+        subfolder_path = os.path.join(VIDEO_FOLDER, subfolder)
+        for filename in os.listdir(subfolder_path):
+            encoded = urllib.parse.quote(filename)
+            if encoded == video_id:
+                thumbnail = f'http://127.0.0.1:5001/api/thumbnail/{encoded}'
+                url = f'http://127.0.0.1:5001/api/video/{encoded}'
+                return jsonify({
+                    'id': encoded,
+                    'title': filename,
+                    'url': url,
+                    'thumbnail': thumbnail
+                })
+    return jsonify({'error': 'Video not found'}), 404
+
 
 # 提供縮圖
 @app.route('/api/thumbnail/<path:filename>')
