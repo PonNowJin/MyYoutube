@@ -4,7 +4,17 @@
       <!-- 左側：影片 + 留言 -->
       <div class="left-panel">
         <h1 class="video-title">{{ videoData.title }}</h1>
-        <video class="video-player" :src="videoData.url" controls autoplay></video>
+
+        <!-- video.js player -->
+        <div data-vjs-player>
+          <video
+            ref="player"
+            class="video-js vjs-default-skin video-player"
+            controls
+            preload="auto"
+            playsinline
+          ></video>
+        </div>
 
         <!-- 留言區 -->
         <section class="comments">
@@ -40,6 +50,8 @@
 
 <script>
 import axios from 'axios';
+import videojs from 'video.js';
+import 'video.js/dist/video-js.css';
 
 export default {
   props: ['id'],
@@ -52,10 +64,10 @@ export default {
         user: '',
         text: '',
       },
+      player: null,
     };
   },
   watch: {
-    // 監聽 id 變化，點推薦影片會重新載入內容
     id: {
       immediate: true,
       handler() {
@@ -78,12 +90,28 @@ export default {
           { user: 'Alice', text: '超好看！' },
           { user: 'Bob', text: '推推推' },
         ];
+
+        // 初始化/更新播放器
+        this.$nextTick(() => {
+          if (this.player) {
+            this.player.src({ type: 'video/mp4', src: this.videoData.url });
+            this.player.play();
+          } else {
+            this.player = videojs(this.$refs.player, {
+              controls: true,
+              autoplay: true,
+              preload: 'auto',
+              // responsive: true,
+              fluid: true,
+            });
+            this.player.src({ type: 'video/mp4', src: this.videoData.url });
+          }
+        });
       } catch (err) {
         console.error('讀取影片資料錯誤:', err);
       }
     },
     navigateToVideo(newId) {
-      // 切換路由並傳入新的 id（會觸發 watch）
       this.$router.push({ name: 'VideoPage', params: { id: newId } });
     },
     submitComment() {
@@ -93,6 +121,11 @@ export default {
         this.newComment.text = '';
       }
     },
+  },
+  beforeUnmount() {
+    if (this.player) {
+      this.player.dispose();
+    }
   },
 };
 </script>
@@ -109,7 +142,6 @@ export default {
   gap: 24px;
 }
 
-/* 左側 */
 .left-panel {
   flex: 2;
 }
@@ -122,10 +154,29 @@ export default {
 .video-player {
   width: 100%;
   max-height: 60vh;
-  background: #000;
+  height: auto;
   border-radius: 8px;
   margin-bottom: 24px;
+  background: #000;
+  object-fit: contain; /* 保持比例不裁切 */
 }
+
+/* 強制 video 元素置中 */
+.video-js {
+  max-height: 60vh;
+  height: auto !important;
+  aspect-ratio: unset !important;
+}
+
+.video-js .vjs-tech {
+  object-fit: contain !important;
+  max-height: 60vh;
+  width: 100%;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
 
 /* 留言區 */
 .comments {
@@ -165,7 +216,6 @@ export default {
   border-bottom: 1px solid #eee;
 }
 
-/* 右側 */
 .right-panel {
   flex: 1;
   background-color: #fff;

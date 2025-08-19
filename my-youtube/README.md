@@ -3,6 +3,8 @@
 ## Project setup
 ```
 npm install
+npm install video.js
+npm install videojs videojs-thumbnails
 ```
 
 ### Compiles and hot-reloads for development
